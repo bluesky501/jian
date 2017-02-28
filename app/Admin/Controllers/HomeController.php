@@ -2,6 +2,10 @@
 
 namespace App\Admin\Controllers;
 
+use App\Models\Autosell;
+use App\Models\Custom;
+use App\Models\Item;
+
 use App\Http\Controllers\Controller;
 use Encore\Admin\Facades\Admin;
 use Encore\Admin\Layout\Column;
@@ -29,78 +33,32 @@ class HomeController extends Controller
             $content->description('Description...');
 
             $content->row(function ($row) {
-                $row->column(3, new InfoBox('New Users', 'users', 'aqua', '/admin/users', '1024'));
-                $row->column(3, new InfoBox('New Orders', 'shopping-cart', 'green', '/admin/orders', '150%'));
-                $row->column(3, new InfoBox('Articles', 'book', 'yellow', '/admin/articles', '2786'));
-                $row->column(3, new InfoBox('Documents', 'file', 'red', '/admin/files', '698726'));
+                $orders = Autosell::count();
+                $customs = Custom::count();
+                $shouru = round(Autosell::sum('item_price_no')/10000);
+                $stores = Item::count();
+                $row->column(3, new InfoBox('成交量(单)', 'shopping-cart', 'green', '/admin/orders', $orders));
+                $row->column(3, new InfoBox('客户量(个)', 'users', 'aqua', '/admin/users', $customs));
+                $row->column(3, new InfoBox('整车收入(万元)', 'book', 'yellow', '/admin/articles', $shouru));
+                $row->column(3, new InfoBox('整车库存(台)', 'file', 'red', '/admin/files', $stores));
             });
 
             $content->row(function (Row $row) {
-
                 $row->column(6, function (Column $column) {
-
-                    $tab = new Tab();
-
-                    $pie = new Pie([
-                        ['Stracke Ltd', 450], ['Halvorson PLC', 650], ['Dicki-Braun', 250], ['Russel-Blanda', 300],
-                        ['Emmerich-O\'Keefe', 400], ['Bauch Inc', 200], ['Leannon and Sons', 250], ['Gibson LLC', 250],
-                    ]);
-
-                    $tab->add('Pie', $pie);
-                    $tab->add('Table', new Table());
-                    $tab->add('Text', 'blablablabla....');
-
-                    $tab->dropDown([['Orders', '/admin/orders'], ['administrators', '/admin/administrators']]);
-                    $tab->title('Tabs');
-
-                    $column->append($tab);
-
-                    $collapse = new Collapse();
-
-                    $bar = new Bar(
-                        ["January", "February", "March", "April", "May", "June", "July"],
-                        [
-                            ['First', [40,56,67,23,10,45,78]],
-                            ['Second', [93,23,12,23,75,21,88]],
-                            ['Third', [33,82,34,56,87,12,56]],
-                            ['Forth', [34,25,67,12,48,91,16]],
-                        ]
-                    );
-                    $collapse->add('Bar', $bar);
-                    $collapse->add('Orders', new Table());
-                    $column->append($collapse);
-
-                    $doughnut = new Doughnut([
-                        ['Chrome', 700],
-                        ['IE', 500],
-                        ['FireFox', 400],
-                        ['Safari', 600],
-                        ['Opera', 300],
-                        ['Navigator', 100],
-                    ]);
-                    $column->append((new Box('Doughnut', $doughnut))->removable()->collapsable()->style('info'));
+                    $data['零售'] = Item::where('status', 1)->count();
+                    $data['批发'] = Item::where('status', 2)->count();
+                    $data['其他'] = Item::where('status', 3)->count();
+                    $doughnut = new Doughnut([$data]);
+                    $column->append((new Box('批零比', $doughnut))->removable()->collapsable()->style('info'));
                 });
 
                 $row->column(6, function (Column $column) {
-
-                    $column->append(new Box('Radar', new Radar()));
-
-                    $polarArea = new PolarArea([
-                        ['Red', 300],
-                        ['Blue', 450],
-                        ['Green', 700],
-                        ['Yellow', 280],
-                        ['Black', 425],
-                        ['Gray', 1000],
-                    ]);
-                    $column->append((new Box('Polar Area', $polarArea))->removable()->collapsable());
-
-                    $column->append((new Box('Line', new Line()))->removable()->collapsable()->style('danger'));
+                    $column->append((new Box('重点车型毛利率', new Line()))->removable()->collapsable()->style('danger'));
                 });
 
             });
 
-            $headers = ['Id', 'Email', 'Name', 'Company', 'Last Login', 'Status'];
+            $headers = ['序号', '公司', '库存（台）', '销量（台）', '整车收入（万元）', '整车毛利（万元）','整车票差毛利率%'];
             $rows = [
                 [1, 'labore21@yahoo.com', 'Ms. Clotilde Gibson', 'Goodwin-Watsica', '1997-08-13 13:59:21', 'open'],
                 [2, 'omnis.in@hotmail.com', 'Allie Kuhic', 'Murphy, Koepp and Morar', '1988-07-19 03:19:08', 'blocked'],
@@ -109,7 +67,7 @@ class HomeController extends Controller
                 [5, 'ipsa.aut@gmail.com', 'Ms. Antonietta Kozey Jr.', 'Braun Ltd', '2013-10-16 10:00:01', 'open'],
             ];
 
-            $content->row((new Box('Table', new Table($headers, $rows)))->style('info')->solid());
+            $content->row((new Box('主要店面数据', new Table($headers, $rows)))->style('info')->solid());
         });
     }
 }
